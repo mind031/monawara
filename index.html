@@ -768,7 +768,13 @@ async function applyMove(o){
       G.players.forEach((pl,pi)=>{ if(teamOf(pi)===team) return;
         pl.pieces.forEach(p=>{ if(p.node===final){ p.node=HOME; p.prev=null; caught++; } });
         if(caught) { G.face[pi]='sad'; } });
-      if(caught){ G.capPending=true; extra++; G.players[G.turn].caught+=caught; SND.catch(); say('catch'); G.face[G.turn]='happy'; flashAgain(caught>1?`${caught}개 잡았다! 한 번 더!`:'잡았다! 한 번 더!'); }
+      if(caught){
+        G.players[G.turn].caught+=caught; SND.catch(); say('catch'); G.face[G.turn]='happy';
+        const what=caught>1?`${caught}개 잡았다!`:'잡았다!';
+        // 도·개·걸로 잡아야 한 번 더. 빽도·윷·모로 잡으면 한 번 더는 없어요
+        if(catchBonus(o.r)){ G.capPending=true; extra++; flashAgain(what+' 한 번 더!'); }
+        else { flashAgain(what); toast(`${o.r===4?'윷으로':NAMES[o.r]+'로'} 잡으면 한 번 더는 없어요`,2200); }
+      }
       else{
         const mates=groupAt(final,team);
         if(mates&&mates.length>members.length){ SND.stack(); say('stack'); toast('업었다!'); }
@@ -782,6 +788,7 @@ async function applyMove(o){
   afterAction();
 }
 
+function catchBonus(r){ return r>=1&&r<=3; }
 function checkWin(){
   const n=G.team?2:G.players.length;
   for(let t=0;t<n;t++){
@@ -826,7 +833,7 @@ function evalOpt(o,lv){
   // 잡기: 상대가 잃는 거리 + 한 번 더 던지기
   let cap=0,capVal=0;
   if(!(G.events&&EVENTS[final]==='shelter')) G.players.forEach((pl,pi)=>{ if(teamOf(pi)!==team) pl.pieces.forEach(q=>{ if(q.node===final){ cap++; capVal+=21-dist(q.node,q.prev); } }); });
-  if(cap) s+=(lv>=3?capVal+5:cap*4);
+  if(cap) s+=(lv>=3?capVal+(catchBonus(o.r)?5:0):cap*4);
   if(lv>=3&&G.events&&EVENTS[final]==='extra') s+=4;
   const mates=groupAt(final,team); const after_n=n+(mates&&!cap?mates.length:0);
   if(lv>=4){
