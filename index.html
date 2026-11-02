@@ -146,6 +146,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .pseat .q{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:96px;height:100px;border:4px dashed var(--c);border-radius:22px;display:grid;place-items:center;font-size:52px;color:var(--c)}
 .pseat .who{font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pseat .st{font-size:19px;color:var(--soft)}
+.pseat .chgb{display:inline-block;margin-top:2px;font-size:19px;background:#efe4d2;color:var(--soft);border-radius:12px;padding:3px 14px}
+.pseat{cursor:pointer}
 .pseat.now{box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 40%,transparent),0 8px 0 rgba(120,80,40,.22)}
 .pseat .color{position:absolute;top:-16px;left:50%;transform:translateX(-50%);background:var(--c);color:#fff;border:3px solid #fff;border-radius:999px;padding:0 14px;font-size:18px;line-height:28px;white-space:nowrap}
 #pick .bottom{position:absolute;left:120px;right:120px;bottom:24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
@@ -168,6 +170,11 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .pc.can{cursor:pointer;z-index:4}
 .pc.can img{animation:bob 1s ease-in-out infinite}
 .pc.can .base{box-shadow:0 0 0 7px rgba(127,176,255,.6),0 4px 0 rgba(60,30,10,.25)}
+.pc.picked .base{box-shadow:0 0 0 9px var(--blue),0 4px 0 rgba(60,30,10,.25)}
+.pc.picked img{animation:none;transform:translateY(-14px)}
+.dest.sel{width:100px;height:100px;border-style:solid;background:rgba(127,176,255,.45)}
+.go-tag{position:absolute;transform:translate(-50%,-50%);background:var(--blue);color:#fff;border:4px solid #fff;border-radius:18px;padding:6px 18px;font-size:26px;box-shadow:0 5px 0 #2f5ea8;white-space:nowrap;z-index:6;animation:pulse2 1s ease-in-out infinite}
+@keyframes pulse2{50%{transform:translate(-50%,-50%) scale(1.08)}}
 .pc .hit{position:absolute;left:-55px;top:-100px;width:110px;height:130px}
 .pc.hop img{animation:hop .2s ease-out}
 @keyframes bob{50%{transform:translateY(-10px)}}
@@ -183,7 +190,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .chip.icon{width:52px;height:52px;padding:0;display:grid;place-items:center;font-size:26px}
 .panel{position:absolute;right:40px;top:30px;width:660px;bottom:30px;display:flex;flex-direction:column;gap:14px}
 .port .panel{left:40px;right:40px;top:905px;width:auto;bottom:24px;gap:12px}
-.port .sticks{height:150px;top:4px}.port .sticks img{height:120px;top:14px}
+.port .sticks{height:150px;top:4px}.port .sticks .stk{height:120px;top:14px}
 .port .result{top:128px}.port .result b{font-size:60px}
 .port .queue{bottom:auto;top:10px;left:auto;right:12px}.port .result span{display:none}.port .throw{min-height:0}
 .turn{display:flex;align-items:center;gap:14px;background:var(--cream);border:4px solid color-mix(in srgb,var(--c) 45%,#fff);border-radius:28px;padding:8px 22px 8px 10px;box-shadow:0 6px 0 color-mix(in srgb,var(--c) 40%,transparent)}
@@ -192,8 +199,10 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .turn p{font-size:22px;color:var(--soft)}
 .throw{flex:1;position:relative;background:rgba(255,248,236,.94);border:4px solid var(--line);border-radius:28px;box-shadow:0 6px 0 rgba(120,80,40,.2);overflow:hidden;touch-action:none;min-height:300px}
 .sticks{position:absolute;left:0;right:0;top:10px;height:200px;pointer-events:none}
-.sticks img{position:absolute;height:160px;top:20px;filter:drop-shadow(0 8px 5px rgba(60,30,10,.3));transition:transform .35s}
-.sticks.fly img{animation:fly .7s ease-out}
+.sticks .stk{position:absolute;top:20px;height:160px;transition:transform .35s}
+.sticks .stk img{height:100%;filter:drop-shadow(0 8px 5px rgba(60,30,10,.3))}
+.sticks .bdmark{position:absolute;left:50%;top:13%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#d8402f;border:3px solid #7a2a1a}
+.sticks.fly .stk{animation:fly .7s ease-out}
 @keyframes fly{0%{transform:translateY(0) rotate(0)}40%{transform:translateY(-140px) rotate(540deg)}100%{transform:translateY(0) rotate(var(--r))}}
 .result{position:absolute;left:0;right:0;top:190px;text-align:center;pointer-events:none}
 .result b{display:inline-block;font-weight:400;font-size:74px;line-height:1;color:var(--c);text-shadow:0 4px 0 #fff}
@@ -556,23 +565,31 @@ function render(){
     const can=opts.find(o=>o.node===g.n&&o.team===g.team);
     const multiOwner=new Set(g.list.map(e=>e.pi)).size>1;
     const pics=[...new Set(g.list.map(e=>G.players[e.pi].char))];
-    h+=`<div class="pc${can?' can':''}${G.hopKey===g.n+'|'+g.team?' hop':''}" data-node="${g.n}" style="left:${x+dx}px;top:${y}px;--c:${pl.color}">
+    h+=`<div class="pc${can?' can':''}${can&&G.pick===g.n?' picked':''}${G.hopKey===g.n+'|'+g.team?' hop':''}" data-node="${g.n}" style="left:${x+dx}px;top:${y}px;--c:${pl.color}">
       <span class="base"></span>${g.list.length>1?`<img class="b2" src="${img(pics[1]||pics[0])}" alt="">`:''}<img src="${img(pl.char,G.face&&G.face[first.pi]||'normal')}" alt="${esc(CHNAME[pl.char])}">
       ${G.events&&EVENTS[g.n]==='shelter'?`<img class="shield" src="img/event-shelter.png" alt="">`:''}
       <span class="num">${multiOwner?g.list.map(e=>e.k+1).join('·'):nums.join('·')}</span>${can?'<span class="hit"></span>':''}</div>`;
   }
   // 목적지 표시
   if(human&&opts.length){
-    const seen=new Set();
-    opts.forEach(o=>{ if(o.res.done||seen.has(o.res.final)) return; seen.add(o.res.final); const p=NODE[o.res.final];
-      h+=`<div class="dest" style="left:${p[0]}px;top:${p[1]}px"></div>`; });
-    const doneOpt=opts.some(o=>o.res.done);
-    if(doneOpt) h+=`<div class="blabel" style="left:${B}px;top:${B-96}px;color:var(--blue)">도착 가능!</div>`;
+    const chosen=opts.find(o=>o.node===G.pick);
+    if(chosen){
+      if(chosen.res.done) h+=`<button class="go-tag dest-go" style="left:${B}px;top:${B+18}px">도착시키기!</button>`;
+      else{ const p=NODE[chosen.res.final];
+        h+=`<div class="dest sel" style="left:${p[0]}px;top:${p[1]}px"></div><button class="go-tag dest-go" style="left:${p[0]}px;top:${p[1]-70}px">여기로!</button>`; }
+    }else{
+      const seen=new Set();
+      opts.forEach(o=>{ if(o.res.done||seen.has(o.res.final)) return; seen.add(o.res.final); const p=NODE[o.res.final];
+        h+=`<div class="dest" style="left:${p[0]}px;top:${p[1]}px"></div>`; });
+    }
   }
   lay.innerHTML=h;
-  lay.querySelectorAll('.pc.can').forEach(el=>el.onclick=()=>{ const n=+el.dataset.node; const o=opts.find(o=>o.node===n); if(o) humanMove(o); });
+  // 한 번 누르면 고르기, 한 번 더 누르거나 '여기로!'를 누르면 이동
+  const choose=n=>{ const o=opts.find(o=>o.node===n); if(!o) return; if(G.pick===n){ G.pick=null; humanMove(o); } else { tap(); G.pick=n; render(); } };
+  lay.querySelectorAll('.pc.can').forEach(el=>el.onclick=()=>choose(+el.dataset.node));
+  lay.querySelectorAll('.dest-go').forEach(el=>el.onclick=()=>choose(G.pick));
   const homeOpt=opts.find(o=>o.node===HOME), np=$('#newBtn');
-  np.hidden=!homeOpt; if(homeOpt){ np.textContent=`새 말 올리기 (${homeOpt.count})`; np.onclick=()=>humanMove(homeOpt); }
+  np.hidden=!homeOpt; if(homeOpt){ np.textContent=G.pick===HOME?'여기로 올리기!':`새 말 올리기 (${homeOpt.count})`; np.classList.toggle('red',G.pick===HOME); np.classList.toggle('gold',G.pick!==HOME); np.onclick=()=>choose(HOME); }
   if(!human) $('#newBtn').hidden=true;
   renderPanel(opts);
 }
@@ -587,12 +604,12 @@ function renderPanel(opts){
   if(G.over) msg='';
   else if(cur.ai) msg=G.phase==='throw'?'윷을 던지는 중…':'어디로 갈지 고르는 중…';
   else if(G.phase==='throw') msg=G.queue.length?'한 번 더 던져요!':'윷을 던져 주세요';
-  else if(G.phase==='move') msg=opts&&opts.length?'움직일 말을 눌러 주세요':'움직일 말이 없어요';
+  else if(G.phase==='move') msg=!(opts&&opts.length)?'움직일 말이 없어요':(G.pick!=null?'한 번 더 누르거나 "여기로!"를 누르면 움직여요':'움직일 말을 골라 주세요');
   $('#turnMsg').textContent=msg;
   // 결과 칩
   const q=$('#queue');
   q.innerHTML=G.queue.length>1||G.phase==='move'&&G.queue.length?G.queue.map((r,i)=>`<button class="${i===G.sel&&G.phase==='move'?'on':''}" data-i="${i}">${NAMES[r]}</button>`).join(''):'';
-  q.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(cur.ai||G.phase!=='move') return; tap(); G.sel=+b.dataset.i; render(); });
+  q.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(cur.ai||G.phase!=='move') return; tap(); G.sel=+b.dataset.i; G.pick=null; render(); });
   const tbtn=$('#throwBtn'); tbtn.disabled=!(G.phase==='throw'&&!cur.ai&&!G.over); tbtn.hidden=G.phase==='move'&&!cur.ai;
   tbtn.textContent=G.queue.length&&G.phase==='throw'?'한 번 더!':'던지기';
   $('#hint').textContent=G.phase==='throw'&&!cur.ai?'화면을 위로 쓸어 올려도 던져져요':(G.phase==='move'&&G.queue.length>1&&!cur.ai?'쓸 윷을 먼저 고를 수 있어요':'');
@@ -611,8 +628,9 @@ function drawSticks(flats,animate){
   const el=$('#sticks'),W=el.clientWidth||620;
   const xs=[.2,.36,.52,.68].map(f=>f*W-35), rots=[-22,-6,10,26].map(v=>v+rnd(14)-7);
   el.innerHTML=(flats||[true,false,true,false]).map((f,i)=>{
-    const src=f?(i===0&&G&&G.backdo?'img/yut-backdo.png':'img/yut-flat.png'):'img/yut-rounded.png';
-    return `<img src="${src}" alt="" style="left:${xs[i]}px;--r:${rots[i]}deg;transform:rotate(${rots[i]}deg)">`; }).join('');
+    const src=f?'img/yut-rounded.png':'img/yut-flat.png';  // 배(평평한 면)는 민무늬, 등(둥근 면)에 X 무늬
+    const mark=f&&i===0&&G&&G.backdo;                       // 빽도 윷가락은 배 쪽에 빨간 점
+    return `<span class="stk" style="left:${xs[i]}px;--r:${rots[i]}deg;transform:rotate(${rots[i]}deg)"><img src="${src}" alt="">${mark?'<i class="bdmark"></i>':''}</span>`; }).join('');
   if(animate){ el.classList.remove('fly'); void el.offsetWidth; el.classList.add('fly'); }
 }
 
@@ -658,7 +676,7 @@ function afterAction(){
   G.queue=G.queue.filter(r=>{ const ok=moveOptions(r).length>0; if(!ok) dropped=true; return ok; });
   if(dropped) toast('움직일 말이 없어서 한 번은 넘어가요');
   if(!G.queue.length){ nextTurn(); return; }
-  G.phase='move'; if(G.sel>=G.queue.length) G.sel=0;
+  G.phase='move'; G.pick=null; if(G.sel>=G.queue.length) G.sel=0;
   render();
   if(G.players[G.turn].ai) aiStep();
 }
@@ -671,7 +689,7 @@ function nextTurn(){
   if(G.players[G.turn].ai) aiStep();
 }
 
-async function humanMove(o){ if(G.busy||G.phase!=='move') return; tap(); await applyMove(o); }
+async function humanMove(o){ if(G.busy||G.phase!=='move') return; tap(); G.pick=null; await applyMove(o); }
 
 async function applyMove(o){
   G.busy=true;
@@ -928,7 +946,7 @@ function renderPick(){
   const sr=$('#pseats'); sr.style.gridTemplateColumns=`repeat(${pickSeats.length},1fr)`;
   sr.innerHTML=pickSeats.map((s,i)=>`<div class="card pseat${i===pickCur?' now':''}" style="--c:${COLORS[s.seat][0]}" data-i="${i}"><span class="color">${s.seat+1}번 · ${COLORS[s.seat][1]}</span>
     <div class="mal"><span class="base"></span>${s.char?`<img src="${img(s.char,'happy')}" alt="">`:'<span class="q">?</span>'}</div>
-    <div class="who">${esc(s.name)}</div><div class="st">${s.char?(s.kind==='ai'?'컴퓨터가 골랐어요':'골랐어요'):(i===pickCur?'고르는 중…':'기다리는 중')}</div></div>`).join('');
+    <div class="who">${esc(s.name)}</div>${s.char&&s.kind!=='ai'?'<span class="chgb">바꾸기</span>':`<div class="st">${s.char?'컴퓨터가 골랐어요':(i===pickCur?'고르는 중…':'기다리는 중')}</div>`}</div>`).join('');
   $$('#pseats .pseat').forEach(el=>el.onclick=()=>{ const i=+el.dataset.i; const s=pickSeats[i]; if(s.kind==='ai') return; tap(); s.char=null; pickCur=i; renderPick(); });
   const ready=pickSeats.every(s=>s.char);
   $('#startBtn').classList.toggle('off',!ready);
