@@ -190,26 +190,27 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .chip.icon{width:52px;height:52px;padding:0;display:grid;place-items:center;font-size:26px}
 .panel{position:absolute;right:40px;top:30px;width:660px;bottom:30px;display:flex;flex-direction:column;gap:14px}
 .port .panel{left:40px;right:40px;top:905px;width:auto;bottom:24px;gap:12px}
-.port .sticks{height:150px;top:4px}.port .sticks .stk{height:120px;top:14px}
-.port .result{top:128px}.port .result b{font-size:60px}
-.port .queue{bottom:auto;top:10px;left:auto;right:12px}.port .result span{display:none}.port .throw{min-height:0}
+.port .result b{font-size:58px}.port .again{font-size:36px}
+.port .result span{display:none}.port .throw{min-height:0}
 .turn{display:flex;align-items:center;gap:14px;background:var(--cream);border:4px solid color-mix(in srgb,var(--c) 45%,#fff);border-radius:28px;padding:8px 22px 8px 10px;box-shadow:0 6px 0 color-mix(in srgb,var(--c) 40%,transparent)}
 .turn img{width:92px;height:92px;object-fit:contain}
 .turn h2{font-size:40px;font-weight:400;color:var(--c)}
 .turn p{font-size:22px;color:var(--soft)}
 .throw{flex:1;position:relative;background:rgba(255,248,236,.94);border:4px solid var(--line);border-radius:28px;box-shadow:0 6px 0 rgba(120,80,40,.2);overflow:hidden;touch-action:none;min-height:300px}
-.sticks{position:absolute;left:0;right:0;top:10px;height:200px;pointer-events:none}
-.sticks .stk{position:absolute;top:20px;height:160px;transition:transform .35s}
-.sticks .stk img{height:100%;filter:drop-shadow(0 8px 5px rgba(60,30,10,.3))}
-.sticks .bdmark{position:absolute;left:50%;top:13%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#d8402f;border:3px solid #7a2a1a}
-.sticks.fly .stk{animation:fly .7s ease-out}
-@keyframes fly{0%{transform:translateY(0) rotate(0)}40%{transform:translateY(-140px) rotate(540deg)}100%{transform:translateY(0) rotate(var(--r))}}
-.result{position:absolute;left:0;right:0;top:190px;text-align:center;pointer-events:none}
+.sticks{position:absolute;left:0;right:0;top:0;bottom:84px;pointer-events:none;overflow:visible}
+.sticks .stk{position:absolute;left:0;top:0;will-change:transform}
+.sticks .stk img{display:block;height:100%;width:auto}
+.sticks .stk .bdmark{position:absolute;left:50%;top:10%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#d8402f;border:3px solid #7a2a1a}
+.sticks .gsh{position:absolute;left:0;top:0;width:70px;height:18px;margin:-9px 0 0 -35px;border-radius:50%;background:rgba(80,45,15,.28);filter:blur(2px)}
+.result{position:absolute;left:0;right:0;top:14px;text-align:center;pointer-events:none;z-index:3}
 .result b{display:inline-block;font-weight:400;font-size:74px;line-height:1;color:var(--c);text-shadow:0 4px 0 #fff}
 .result b.pop{animation:pop .4s}
 @keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 .result span{display:block;font-size:22px;color:var(--soft);margin-top:4px}
-.queue{position:absolute;left:18px;right:18px;bottom:92px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.queue{position:absolute;right:14px;top:14px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;max-width:45%;z-index:4}
+.again{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(.4);opacity:0;background:var(--c);color:#fff;border:6px solid #fff;border-radius:28px;padding:14px 34px;font-size:46px;white-space:nowrap;box-shadow:0 8px 0 rgba(0,0,0,.18);pointer-events:none;z-index:5;transition:.25s}
+.again.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.btn.pulse{animation:pulse3 .9s ease-in-out infinite}@keyframes pulse3{50%{transform:scale(1.06)}}
 .queue button{font-size:26px;padding:6px 18px;border-radius:16px;background:#fff;border:4px solid #e6d3b4}
 .queue button.on{background:var(--c);border-color:#fff;color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 40%,transparent)}
 .btnrow{position:absolute;left:20px;right:20px;bottom:16px;display:flex;gap:12px;align-items:center}
@@ -315,7 +316,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
       <div class="throw" id="throwBox">
         <div class="sticks" id="sticks"></div>
         <div class="result"><b id="resText"></b><span id="resSub"></span></div>
-        <div class="queue" id="queue"></div>
+        <div class="queue" id="queue"></div><div class="again" id="againTag">잡았다! 한 번 더!</div>
         <div class="btnrow"><div class="hint" id="hint">화면을 위로 쓸어 올려도 던져져요</div><button class="btn gold" id="newBtn" hidden>새 말 올리기</button><button class="btn red" id="throwBtn">던지기</button></div>
       </div>
       <div class="players" id="pcards"></div>
@@ -603,7 +604,7 @@ function renderPanel(opts){
   let msg='';
   if(G.over) msg='';
   else if(cur.ai) msg=G.phase==='throw'?'윷을 던지는 중…':'어디로 갈지 고르는 중…';
-  else if(G.phase==='throw') msg=G.queue.length?'한 번 더 던져요!':'윷을 던져 주세요';
+  else if(G.phase==='throw') msg=G.capPending?'말을 잡았으니 한 번 더 던져요!':(G.queue.length?'한 번 더 던져요!':'윷을 던져 주세요');
   else if(G.phase==='move') msg=!(opts&&opts.length)?'움직일 말이 없어요':(G.pick!=null?'한 번 더 누르거나 "여기로!"를 누르면 움직여요':'움직일 말을 골라 주세요');
   $('#turnMsg').textContent=msg;
   // 결과 칩
@@ -611,7 +612,8 @@ function renderPanel(opts){
   q.innerHTML=G.queue.length>1||G.phase==='move'&&G.queue.length?G.queue.map((r,i)=>`<button class="${i===G.sel&&G.phase==='move'?'on':''}" data-i="${i}">${NAMES[r]}</button>`).join(''):'';
   q.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(cur.ai||G.phase!=='move') return; tap(); G.sel=+b.dataset.i; G.pick=null; render(); });
   const tbtn=$('#throwBtn'); tbtn.disabled=!(G.phase==='throw'&&!cur.ai&&!G.over); tbtn.hidden=G.phase==='move'&&!cur.ai;
-  tbtn.textContent=G.queue.length&&G.phase==='throw'?'한 번 더!':'던지기';
+  const more=G.phase==='throw'&&(G.queue.length>0||G.capPending||G.extraNote);
+  tbtn.textContent=more?(G.throwsLeft>1?`한 번 더! (${G.throwsLeft}번)`:'한 번 더!'):'던지기'; tbtn.classList.toggle('pulse',!!more&&!cur.ai);
   $('#hint').textContent=G.phase==='throw'&&!cur.ai?'화면을 위로 쓸어 올려도 던져져요':(G.phase==='move'&&G.queue.length>1&&!cur.ai?'쓸 윷을 먼저 고를 수 있어요':'');
   // 선수 카드
   const leader=topProfileId();
@@ -624,14 +626,55 @@ function renderPanel(opts){
   $('#ruleChip').textContent=[`말 ${G.nP}개`,G.backdo?'빽도 켜짐':'빽도 꺼짐',G.events?'이벤트 칸 켜짐':'',G.team?'팀전':''].filter(Boolean).join(' · ');
 }
 
-function drawSticks(flats,animate){
-  const el=$('#sticks'),W=el.clientWidth||620;
-  const xs=[.2,.36,.52,.68].map(f=>f*W-35), rots=[-22,-6,10,26].map(v=>v+rnd(14)-7);
-  el.innerHTML=(flats||[true,false,true,false]).map((f,i)=>{
-    const src=f?'img/yut-rounded.png':'img/yut-flat.png';  // 배(평평한 면)는 민무늬, 등(둥근 면)에 X 무늬
-    const mark=f&&i===0&&G&&G.backdo;                       // 빽도 윷가락은 배 쪽에 빨간 점
-    return `<span class="stk" style="left:${xs[i]}px;--r:${rots[i]}deg;transform:rotate(${rots[i]}deg)"><img src="${src}" alt="">${mark?'<i class="bdmark"></i>':''}</span>`; }).join('');
-  if(animate){ el.classList.remove('fly'); void el.offsetWidth; el.classList.add('fly'); }
+// 윷가락: 배(평평한 면)=민무늬, 등(둥근 면)=X 무늬, 빽도 윷가락은 배 쪽에 빨간 점
+let stickState=null;
+function stickHTML(){ return [0,1,2,3].map(i=>`<i class="gsh"></i><span class="stk"><img alt=""><i class="bdmark" hidden></i></span>`).join(''); }
+function setFace(el,flat,i){ el.querySelector('img').src=flat?'img/yut-rounded.png':'img/yut-flat.png'; el.querySelector('.bdmark').hidden=!(flat&&i===0&&G&&G.backdo); }
+function placeStick(el,sh,x,y,rot,sc,h,lift){
+  el.style.height=h+'px';
+  const w=h*.2;
+  el.style.transform=`translate(${x-w/2}px,${y-h/2-lift}px) rotate(${rot}deg) scale(${sc})`;
+  el.style.filter=`drop-shadow(0 ${6+lift*.08}px ${3+lift*.03}px rgba(60,30,10,${Math.max(.12,.32-lift*.0006)}))`;
+  sh.style.transform=`translate(${x}px,${y+h*.18}px) scale(${Math.max(.35,1-lift/500)})`; sh.style.opacity=Math.max(.15,1-lift/400);
+}
+function drawSticks(flats,animate,power=1){
+  const box=$('#sticks'); if(!box.children.length) box.innerHTML=stickHTML();
+  const W=box.clientWidth||640, H=box.clientHeight||400;
+  const h=Math.min(170,H*.46);
+  const els=[...box.querySelectorAll('.stk')], shs=[...box.querySelectorAll('.gsh')];
+  flats=flats||[true,false,true,false];
+  // 떨어질 자리: 서로 겹치지 않게 네 칸으로 나누고 섞기
+  const cols=[.17,.39,.61,.83].sort(()=>Math.random()-.5);
+  const end=flats.map((f,i)=>({x:cols[i]*W+(Math.random()-.5)*W*.07, y:H*(.56+Math.random()*.16), rot:(Math.random()-.5)*130}));
+  if(!animate||FAST){ els.forEach((el,i)=>{ setFace(el,flats[i],i); placeStick(el,shs[i],end[i].x,end[i].y,end[i].rot,1,h,0); }); stickState=end; return Promise.resolve(); }
+  return new Promise(done=>{
+    const st=flats.map((f,i)=>({sx:W/2+(i-1.5)*18, sy:H+h*.7, T:900+i*70+Math.random()*180, spin:(780+Math.random()*900)*(i%2?1:-1),
+      flip:70+Math.random()*40, landed:false}));
+    // 가장 높이 떠도 상자 안에 보이게
+    st.forEach((s,i)=>{ const top=h*.6; s.arc=Math.max(40,((s.sy+end[i].y)/2-top))*(.82+.12*Math.min(power,1.6)); });
+    const t0=performance.now();
+    function frame(now){
+      const t=now-t0; let all=true;
+      els.forEach((el,i)=>{
+        const s=st[i],e=end[i]; let p=Math.min(1,t/s.T);
+        const ease=1-Math.pow(1-p,2);
+        let x=s.sx+(e.x-s.sx)*ease, y=s.sy+(e.y-s.sy)*p, lift=s.arc*4*p*(1-p);
+        let rot=e.rot+s.spin*(1-ease), sc=1+.38*4*p*(1-p);
+        if(p<.9) setFace(el,Math.floor(t/s.flip)%2===0,i); else setFace(el,flats[i],i);
+        if(p>=1){
+          if(!s.landed){ s.landed=true; clack(); }
+          const b=t-s.T; if(b<260){ lift=Math.abs(Math.sin(b/260*Math.PI))*16*(1-b/260); rot=e.rot+(1-b/260)*8; all=false; }
+        }else all=false;
+        placeStick(el,shs[i],x,y,rot,sc,h,lift);
+      });
+      if(all){ stickState=end; done(); } else requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  });
+}
+function flashAgain(text){
+  const el=$('#againTag'); el.textContent=text; el.classList.add('on');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),FAST?5:1500);
 }
 
 /* ================= 진행 ================= */
@@ -651,17 +694,18 @@ function moveOptions(r){
   return opts;
 }
 
-async function doThrow(){
+async function doThrow(power=1){
   if(!G||G.phase!=='throw'||G.over||G.busy) return;
   G.busy=true; ac();
-  const t=throwYut(); G.throwsLeft--;
-  SND.throwUp(); drawSticks(t.flats,true);
+  G.capPending=null; const t=throwYut(); G.throwsLeft--;
+  render();
+  SND.throwUp();
   const rt=$('#resText'); rt.textContent=''; $('#resSub').textContent='';
-  await wait(650); SND.land();
+  await drawSticks(t.flats,true,power);
   rt.textContent=NAMES[t.r]+'!'; rt.classList.remove('pop'); void rt.offsetWidth; rt.classList.add('pop');
   $('#resSub').textContent=SUB[t.r]; say(t.r);
   G.queue.push(t.r);
-  if(t.r>=4) G.throwsLeft++;
+  if(t.r>=4){ G.throwsLeft++; setTimeout(()=>flashAgain(t.r===5?'모! 한 번 더!':'윷! 한 번 더!'),FAST?0:350); }
   G.face=G.face||{}; G.face[G.turn]=t.r>=4?'happy':(t.r===-1?'sad':'normal');
   await wait(t.r>=4?900:600);
   G.busy=false;
@@ -682,6 +726,7 @@ function afterAction(){
 }
 
 function nextTurn(){
+  if(G.capPending&&!G.over){ G.capPending=null; G.throwsLeft=Math.max(1,G.throwsLeft); G.phase='throw'; flashAgain('잡았다! 한 번 더!'); render(); if(G.players[G.turn].ai) aiStep(); return; }
   G.queue=[]; G.sel=0; G.face={};
   G.turn=(G.turn+1)%G.players.length; G.throwsLeft=1; G.phase='throw';
   $('#resText').textContent=''; $('#resSub').textContent='';
@@ -711,7 +756,7 @@ async function applyMove(o){
     // 이벤트 칸
     if(G.events&&EVENTS[final]){
       const ev=EVENTS[final];
-      if(ev==='extra'){ extra++; SND.event(); toast('한 번 더 던져요!'); }
+      if(ev==='extra'){ extra++; SND.event(); flashAgain('한 번 더 던져요!'); }
       else if(ev==='back'){ SND.sad(); toast('두 칸 뒤로!'); members.forEach(e=>{e.p.node=final;}); render(); await wait(400); final=pred(pred(final)); prev=pred(final); }
       else if(ev==='teleport'){ SND.event(); toast('순간이동!'); members.forEach(e=>{e.p.node=final;}); render(); await wait(450); final=TELE_TO; prev=22; }
       else if(ev==='shelter'){ toast('대피 칸! 여기서는 잡히지 않아요'); }
@@ -723,7 +768,7 @@ async function applyMove(o){
       G.players.forEach((pl,pi)=>{ if(teamOf(pi)===team) return;
         pl.pieces.forEach(p=>{ if(p.node===final){ p.node=HOME; p.prev=null; caught++; } });
         if(caught) { G.face[pi]='sad'; } });
-      if(caught){ extra++; G.players[G.turn].caught+=caught; SND.catch(); say('catch'); G.face[G.turn]='happy'; toast(`${caught}개 잡았다! 한 번 더!`); }
+      if(caught){ G.capPending=true; extra++; G.players[G.turn].caught+=caught; SND.catch(); say('catch'); G.face[G.turn]='happy'; flashAgain(caught>1?`${caught}개 잡았다! 한 번 더!`:'잡았다! 한 번 더!'); }
       else{
         const mates=groupAt(final,team);
         if(mates&&mates.length>members.length){ SND.stack(); say('stack'); toast('업었다!'); }
@@ -968,7 +1013,7 @@ $('#throwBtn').onclick=()=>doThrow();
 (()=>{ const box=$('#throwBox'); let y0=null,t0=0;
   box.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; y0=e.clientY; t0=Date.now(); });
   box.addEventListener('pointerup',e=>{ if(y0==null) return; const dy=e.clientY-y0, dt=Date.now()-t0; y0=null;
-    if(dy<-50&&dt<700&&G&&!G.players[G.turn].ai) doThrow(); });
+    if(dy<-50&&dt<700&&G&&!G.players[G.turn].ai) doThrow(Math.min(1.6,Math.max(.7,(-dy/dt)*.9))); });
 })();
 
 $('#menuBtn').onclick=async()=>{ tap();
@@ -1014,7 +1059,7 @@ $$('#home [data-go]').forEach(b=>b.onclick=()=>{ tap(); const g=b.dataset.go;
 if(!store.profiles.length) setTimeout(()=>{ if($('#home').classList.contains('on')&&!FAST) modal('반가워요!','<p>가족마다 프로필을 만들어 두면<br>누가 몇 번 이겼는지 명예의 전당에 쌓여요.</p>',[{t:'프로필 만들기',v:1,cls:'red'},{t:'나중에',v:0}]).then(v=>{ if(v) openProfiles(); }); },600);
 
 if('serviceWorker' in navigator&&location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
-window.__dbg={get G(){return G},setup,store,newGame,startGame,route,dist,moveOptions};
+window.__dbg={get G(){return G},setup,store,newGame,startGame,route,dist,moveOptions};window.__dbg_apply=o=>applyMove(o);
 </script>
 </body>
 </html>
