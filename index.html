@@ -226,9 +226,20 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .p .dots{display:flex;gap:5px;margin-top:3px}
 .p .dots i{width:26px;height:26px;border-radius:50%;border:3px solid var(--c);font-style:normal;font-size:15px;line-height:20px;text-align:center;color:var(--c)}
 .p .dots i.on{background:var(--c);color:#fff}
-.p .dots i.done{background:var(--gold);border-color:var(--gold);color:#fff}
+.p .mid{min-width:0;flex:1}
+.p .alldone{font-size:17px;color:var(--soft)}
+.goal{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff3d6;border:3px dashed #e6c27a;border-radius:16px;padding:3px 6px 5px}
+.goal.all{background:#ffe7a3;border-style:solid;border-color:var(--gold)}
+.goal .gl{font-size:14px;color:#a7772a;white-space:nowrap}
+.goal .slots{display:grid;grid-template-columns:repeat(2,30px);gap:4px}
+.goal .slot{width:30px;height:30px;border-radius:8px;background:rgba(230,194,122,.25);border:2px solid rgba(230,194,122,.6);position:relative}
+.goal .slot.full{background:#fff;border-color:var(--gold);overflow:visible}
+.goal .slot img{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);object-fit:contain}
+.goal .slot b{position:absolute;right:-6px;bottom:-6px;min-width:16px;height:16px;border-radius:999px;background:var(--c);color:#fff;font-weight:400;font-size:11px;line-height:16px;text-align:center;border:2px solid #fff}
+.goal .slot.new{animation:drop .6s cubic-bezier(.3,1.6,.5,1)}
+@keyframes drop{0%{transform:translateY(-40px) scale(1.6);opacity:0}100%{transform:none;opacity:1}}
+.port .goal .slots{grid-template-columns:repeat(4,28px)}.port .goal .slot{width:28px;height:28px}
 .p .crown{position:absolute;left:10px;top:-22px;width:48px;transform:rotate(-14deg)}
-.p .team{position:absolute;right:10px;top:6px;font-size:16px;color:var(--soft)}
 
 /* 결과 / 명예의 전당 */
 #result .podium{position:absolute;left:120px;right:120px;top:170px;display:flex;justify-content:center;align-items:flex-end;gap:24px}
@@ -595,6 +606,14 @@ function render(){
   renderPanel(opts);
 }
 
+// 도착한 말을 넣어 두는 칸
+function goalBox(pl,pi){
+  const done=pl.pieces.map((p,k)=>({p,k})).filter(x=>x.p.node===DONE);
+  const before=(G.prevDone&&G.prevDone[pi])||0;
+  const slots=pl.pieces.map((_,i)=>{ const d=done[i];
+    return d?`<span class="slot full${i>=before?' new':''}"><img src="${img(pl.char)}" alt=""><b>${d.k+1}</b></span>`:'<span class="slot"></span>'; }).join('');
+  return `<div class="goal${done.length===pl.pieces.length?' all':''}"><span class="gl">도착 ${done.length}/${pl.pieces.length}</span><div class="slots n${pl.pieces.length}">${slots}</div></div>`;
+}
 function renderPanel(opts){
   const cur=G.players[G.turn];
   const tb=$('#turnBox'); tb.style.setProperty('--c',cur.color);
@@ -620,9 +639,10 @@ function renderPanel(opts){
   $('#pcards').innerHTML=G.players.map((pl,pi)=>`<div class="p${pi===G.turn&&!G.over?' now':''}" style="--c:${pl.color}">
     ${pl.profileId&&pl.profileId===leader?'<img class="crown" src="img/crown.png" alt="명예의 전당 1등">':''}
     <img class="av" src="${img(pl.char,G.face&&G.face[pi]||'normal')}" alt="">
-    <div style="min-width:0"><div class="nm">${esc(pl.name)}${pl.ai?` <small>${'★'.repeat(pl.ai)}</small>`:''}</div>
-    <div class="dots">${pl.pieces.map((p,k)=>`<i class="${p.node===DONE?'done':p.node===HOME?'':'on'}">${k+1}</i>`).join('')}</div></div>
-    ${G.team?`<span class="team">${pi%2?'B팀':'A팀'}</span>`:''}</div>`).join('');
+    <div class="mid"><div class="nm">${esc(pl.name)}${pl.ai?` <small>${'★'.repeat(pl.ai)}</small>`:''}${G.team?` <small>${pi%2?'B팀':'A팀'}</small>`:''}</div>
+    <div class="dots">${pl.pieces.map((p,k)=>p.node===DONE?'':`<i class="${p.node===HOME?'':'on'}">${k+1}</i>`).join('')||'<span class="alldone">모두 났어요!</span>'}</div></div>
+    ${goalBox(pl,pi)}</div>`).join('');
+  G.prevDone=G.players.map(pl=>pl.pieces.filter(p=>p.node===DONE).length);
   $('#ruleChip').textContent=[`말 ${G.nP}개`,G.backdo?'빽도 켜짐':'빽도 꺼짐',G.events?'이벤트 칸 켜짐':'',G.team?'팀전':''].filter(Boolean).join(' · ');
 }
 
