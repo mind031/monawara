@@ -983,27 +983,37 @@ function openPick(){
   const taken=new Set();
   pickSeats.forEach(s=>{ if(s.kind==='p'){ const p=prof(s.profileId); const want=p&&p.lastChar; if(want&&!taken.has(want)){ s.pre=want; } } });
   pickSeats.forEach(s=>{ if(s.kind==='ai'){ const free=CHARS.map(c=>c[0]).filter(c=>!taken.has(c)&&!pickSeats.some(o=>o.pre===c)); s.char=free.includes(AICH[s.ai])?AICH[s.ai]:pickOne(free); taken.add(s.char); } });
-  pickCur=pickSeats.findIndex(s=>!s.char);
+  pickSeats.forEach(s=>{ if(s.kind!=='ai'&&s.pre&&!pickSeats.some(o=>o.char===s.pre)) s.char=s.pre; });
+  pickCur=Math.max(0,pickSeats.findIndex(s=>s.kind!=='ai'));
   renderPick(); show('pick');
 }
 function renderPick(){
   const takenBy=new Map(pickSeats.filter(s=>s.char).map(s=>[s.char,s]));
   const cur=pickSeats[pickCur];
-  $('#pickMsg').textContent=cur?`${cur.name}, 이번 판에 데려갈 말을 골라 주세요`:'모두 골랐어요! 시작해 볼까요?';
+  const left=pickSeats.filter(s=>!s.char).length;
+  $('#pickMsg').textContent=!cur?'모두 골랐어요! 시작해 볼까요?':(cur.char?`${cur.name}: ${CHNAME[cur.char]}! 다른 말을 누르면 바뀌어요`:`${cur.name}, 이번 판에 데려갈 말을 골라 주세요`);
   $('#pool').innerHTML=CHARS.map(([c,n])=>{ const t=takenBy.get(c);
-    const mine=cur&&!t&&cur.pre===c;
-    return `<button class="ch${t?' taken':''}${mine?' mine':''}" data-c="${c}" style="--c:${t?COLORS[t.seat][0]:(cur?COLORS[cur.seat][0]:'#ccc')}">${t?`<span class="tg">${esc(t.name)}</span>`:''}<img src="${img(c)}" alt=""><span class="n">${n}</span></button>`; }).join('');
-  $$('#pool .ch').forEach(b=>b.onclick=()=>{ const c=b.dataset.c; if(!cur){ return; } if(takenBy.has(c)){ toast('이미 누가 골랐어요'); return; }
-    SND.stack(); cur.char=c; pickCur=pickSeats.findIndex(s=>!s.char); renderPick(); });
+    const mine=cur&&t===cur;
+    return `<button class="ch${t&&!mine?' taken':''}${mine?' mine':''}" data-c="${c}" style="--c:${t?COLORS[t.seat][0]:(cur?COLORS[cur.seat][0]:'#ccc')}">${t?`<span class="tg">${esc(t.name)}</span>`:''}<img src="${img(c)}" alt=""><span class="n">${n}</span></button>`; }).join('');
+  // 다른 말을 누르면 지금 사람의 말이 그걸로 바뀌어요 (다음 사람으로 저절로 넘어가지 않아요)
+  $$('#pool .ch').forEach(b=>b.onclick=()=>{ const c=b.dataset.c; if(!cur) return; const t=takenBy.get(c);
+    if(t&&t!==cur){ toast(`${t.name}이(가) 고른 말이에요`); return; }
+    SND.stack(); cur.char=c; renderPick(); });
   const sr=$('#pseats'); sr.style.gridTemplateColumns=`repeat(${pickSeats.length},1fr)`;
   sr.innerHTML=pickSeats.map((s,i)=>`<div class="card pseat${i===pickCur?' now':''}" style="--c:${COLORS[s.seat][0]}" data-i="${i}"><span class="color">${s.seat+1}번 · ${COLORS[s.seat][1]}</span>
     <div class="mal"><span class="base"></span>${s.char?`<img src="${img(s.char,'happy')}" alt="">`:'<span class="q">?</span>'}</div>
-    <div class="who">${esc(s.name)}</div>${s.char&&s.kind!=='ai'?'<span class="chgb">바꾸기</span>':`<div class="st">${s.char?'컴퓨터가 골랐어요':(i===pickCur?'고르는 중…':'기다리는 중')}</div>`}</div>`).join('');
-  $$('#pseats .pseat').forEach(el=>el.onclick=()=>{ const i=+el.dataset.i; const s=pickSeats[i]; if(s.kind==='ai') return; tap(); s.char=null; pickCur=i; renderPick(); });
-  const ready=pickSeats.every(s=>s.char);
-  $('#startBtn').classList.toggle('off',!ready);
+    <div class="who">${esc(s.name)}</div><div class="st">${s.kind==='ai'?'컴퓨터가 골랐어요':(i===pickCur?(s.char?'바꿀 수 있어요':'고르는 중…'):(s.char?'눌러서 바꾸기':'기다리는 중'))}</div></div>`).join('');
+  $$('#pseats .pseat').forEach(el=>el.onclick=()=>{ const i=+el.dataset.i; if(pickSeats[i].kind==='ai') return; tap(); pickCur=i; renderPick(); });
+  const btn=$('#startBtn');
+  if(!left){ btn.textContent='시작!'; btn.classList.remove('off'); }
+  else if(cur&&cur.char){ btn.textContent='다음 사람 →'; btn.classList.remove('off'); }
+  else { btn.textContent='말을 골라 주세요'; btn.classList.add('off'); }
 }
-$('#startBtn').onclick=()=>{ if(!pickSeats.every(s=>s.char)) return; tap();
+$('#startBtn').onclick=()=>{
+  if(pickSeats.some(s=>!s.char)){ // 아직 안 고른 사람이 있으면 그 사람 차례로
+    const cur=pickSeats[pickCur]; if(!cur||!cur.char) return; tap();
+    const nx=pickSeats.findIndex((s,i)=>!s.char&&i>pickCur); pickCur=nx>=0?nx:pickSeats.findIndex(s=>!s.char); renderPick(); return; }
+  tap();
   setup.seats=setup.seats.map((s,i)=>{ const p=pickSeats.find(x=>x.seat===i); return p?{...s,char:p.char,name:p.name,seat:i}:s; });
   newGame(); startGame(); };
 
